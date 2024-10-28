@@ -1,0 +1,2 @@
+# pwnagotchi-plugins
+any plugins
