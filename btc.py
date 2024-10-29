@@ -19,7 +19,7 @@ class BitcoinPrice(plugins.Plugin):
         self.connected = False  # Track connection status
 
     def on_ui_setup(self, ui):
-        position = (0, 44)  # Adjust x, y for your screen layout
+        position = (10, 100)  # Adjust x, y for your screen layout
         ui.add_element(
             'bitcoin_price',
             LabeledValue(
