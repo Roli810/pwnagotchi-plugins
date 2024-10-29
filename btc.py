@@ -49,8 +49,11 @@ class BitcoinPrice(plugins.Plugin):
 
     def on_ui_update(self, ui):
         current_time = time.time()
+        logging.debug(f"Current time: {current_time}, Last update: {self.last_update}")
+        
         # Check if 30 seconds have passed since the last update
         if current_time - self.last_update >= 30:
+            logging.debug("Fetching new Bitcoin price...")
             try:
                 # Fetch current Bitcoin price from CoinDesk API
                 response = requests.get("https://api.coindesk.com/v1/bpi/currentprice/USD.json")
@@ -66,4 +69,3 @@ class BitcoinPrice(plugins.Plugin):
                 ui.set('bitcoin_price', price)  # Set the UI to display the last known price
             except Exception as e:
                 logging.error(f"Failed to fetch Bitcoin price: {e}")
-
