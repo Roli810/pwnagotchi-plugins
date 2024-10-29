@@ -1,71 +1,100 @@
 import logging
-import time
-import json
 import requests
 import pwnagotchi.plugins as plugins
 import pwnagotchi.ui.fonts as fonts
 from pwnagotchi.ui.components import LabeledValue
 from pwnagotchi.ui.view import BLACK
-
+from time import sleep
+import json
+short = True
 class BitcoinPrice(plugins.Plugin):
     __author__ = 'YourName'
-    __version__ = '1.0.0'
+    __version__ = '1.1.0'
     __license__ = 'GPL3'
     __description__ = 'Displays the current Bitcoin price in USD'
-    
+
     def on_loaded(self):
         logging.info("BitcoinPrice plugin loaded.")
-        self.last_update = 0  # Track the last update time
-        self.price_file = '/root/bitcoin_price.json'  # Path to save the price
-
-    def save_price(self, price):
-        # Save the price to a JSON file
-        with open(self.price_file, 'w') as f:
-            json.dump({'price': price}, f)
-
-    def load_price(self):
-        # Load the price from the JSON file
-        try:
-            with open(self.price_file, 'r') as f:
-                data = json.load(f)
-                return data.get('price', 'N/A')
-        except (FileNotFoundError, json.JSONDecodeError):
-            return 'N/A'  # Return 'N/A' if the file doesn't exist or is empty
+        self.price = "Loading..."
+        self.connected = False  # Track connection status
 
     def on_ui_setup(self, ui):
-        # Position the text based on your screen type or set custom position
-        position = (10, 100)  # Adjust x, y for your screen layout
+        position = (0, 44)  # Adjust x, y for your screen layout
         ui.add_element(
             'bitcoin_price',
             LabeledValue(
                 color=BLACK,
-                label='BTC: $',
-                value='Loading...',
+                label='BTC:',
+                value=self.price,
                 position=position,
                 label_font=fonts.Small,
                 text_font=fonts.Small,
             )
         )
+        self.update_price(ui)  # Initial price fetch
+
+    def update_price(self, ui):
+        try:
+            file_path = '/boot/USD.json'  # Path where the JSON will be saved
+            url = "https://api.coindesk.com/v1/bpi/currentprice/USD.json"
+            download = requests.get(url)
+
+            # Check if the request was successful
+            if download.status_code == 200:
+                with open(file_path, 'wb') as f:
+                    f.write(download.content)
+                logging.info(f"File downloaded and saved to {file_path}")
+            else:
+                logging.error(f"Failed to download file: {download.status_code}")
+                return  # Exit if download fails
+
+            # Load the data from the saved file
+            with open(file_path, 'r') as f:
+                data = json.load(f)  # Use json.load to read from file
+
+            self.price = data['bpi']['USD']['rate']
+            truncated_price = self.truncate_price(self.price)
+
+            self.connected = True  # Set connected to True if successful
+            ui.set('bitcoin_price', truncated_price)
+            logging.info(f"Fetched Bitcoin price: {truncated_price}")
+        except requests.ConnectionError:
+            logging.warning("No network connection. Price will not update.")
+            file_path = '/boot/USD.json'  # Path where the JSON will be saved
+            url = "https://api.coindesk.com/v1/bpi/currentprice/USD.json"
+            with open(file_path, 'r') as f:
+                data = json.load(f)  # Use json.load to read from file
+
+            self.price = data['bpi']['USD']['rate']
+            truncated_price = self.truncate_price(self.price)
+
+            self.connected = True  # Set connected to True if successful
+            ui.set('bitcoin_price', truncated_price)
+            self.connected = False  # Set connected to False if there's no connection
+        except Exception as e:
+            logging.error(f"Failed to fetch Bitcoin price: {e}")
+
+    def truncate_price(self, price):
+        """Custom formatting based on the price range."""
+        price_float = float(price.replace(',', ''))  # Remove commas and convert to float
+        if short == True:
+            if price_float >= 1000:
+                return f"${int(price_float) / 1000:.1f}K"
+            else:
+                return f"${price_float:,.2f}"
+        else:
+            
+            if price_float >= 1000:
+                # Show whole number part only for large prices
+                return f"${price}"
+            else:
+                # For lower prices, show two decimal places
+                return f"${price:,.2f}"
 
     def on_ui_update(self, ui):
-        current_time = time.time()
-        logging.debug(f"Current time: {current_time}, Last update: {self.last_update}")
-        
-        # Check if 30 seconds have passed since the last update
-        if current_time - self.last_update >= 30:
-            logging.debug("Fetching new Bitcoin price...")
-            try:
-                # Fetch current Bitcoin price from CoinDesk API
-                response = requests.get("https://api.coindesk.com/v1/bpi/currentprice/USD.json")
-                data = response.json()
-                price = data['bpi']['USD']['rate']
-                ui.set('bitcoin_price', price)
-                logging.info(f"Updated Bitcoin price: {price}")
-                self.save_price(price)  # Save the fetched price
-                self.last_update = current_time  # Update the last fetch time
-            except requests.ConnectionError:
-                logging.error("No internet connection. Loading last known price.")
-                price = self.load_price()  # Load last known price
-                ui.set('bitcoin_price', price)  # Set the UI to display the last known price
-            except Exception as e:
-                logging.error(f"Failed to fetch Bitcoin price: {e}")
+        if self.connected:
+            self.update_price(ui)  # Update price only if connected
+            sleep(30)  # Wait for 30 seconds before the next update
+
+    def on_unload(self, ui):
+        ui.remove_element('bitcoin_price')
