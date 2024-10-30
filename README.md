@@ -1,5 +1,5 @@
 # pwnagotchi-plugins
-any plugins
+Plugins made by me
 
 ![20241029_005641](https://github.com/user-attachments/assets/da9dadee-1a23-4e7b-a2ae-73e32a8f5257)
 
