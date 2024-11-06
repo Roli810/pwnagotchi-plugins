@@ -9,7 +9,7 @@ from pwnagotchi.ui.components import LabeledValue
 from pwnagotchi.ui.view import BLACK
 
 class BitcoinPrice(plugins.Plugin):
-    __author__ = 'Roli810'
+    __author__ = 'Roli0810'
     __version__ = '1.0.0'
     __license__ = 'GPL3'
     __description__ = 'Displays the current Bitcoin price in USD'
