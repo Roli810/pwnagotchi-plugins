@@ -13,6 +13,9 @@ For the spotify.py
 First you'll have to register an app at https://developer.spotify.com/dashboard/
 and set it up.
 
+then run this on your pi
+pip install spotipy
+
 After that run the test.py on your pc after you've added the client id and secret
 you'll get a .cache file. Move that file to the pwnagotchi's /usr/local/share/pwnagotchi/custom-plugins folder.
 
